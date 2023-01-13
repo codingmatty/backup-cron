@@ -4,7 +4,7 @@ import { createReadStream } from "fs";
 
 import { env } from "./env";
 
-const uploadToS3 = async ({ name, path }: {name: string, path: string}) => {
+const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
   console.log("Uploading backup to S3...");
 
   const bucket = env.AWS_S3_BUCKET;
@@ -18,12 +18,14 @@ const uploadToS3 = async ({ name, path }: {name: string, path: string}) => {
     clientOptions['endpoint'] = env.AWS_S3_ENDPOINT;
   }
 
+  const Key = env.AWS_S3_KEY_PREFIX ? `${env.AWS_S3_KEY_PREFIX}/${name}` : name
+
   const client = new S3Client(clientOptions);
 
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
-      Key: name,
+      Key,
       Body: createReadStream(path),
     })
   )
@@ -60,7 +62,7 @@ export const backup = async () => {
   const filepath = `/tmp/${filename}`
 
   await dumpToFile(filepath)
-  await uploadToS3({name: filename, path: filepath})
+  await uploadToS3({ name: filename, path: filepath })
 
   console.log("DB backup complete...")
 }
