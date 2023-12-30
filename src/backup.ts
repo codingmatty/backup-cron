@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { PutObjectCommand, S3Client, S3ClientConfig } from "@aws-sdk/client-s3";
 import { createReadStream } from "fs";
 
@@ -33,21 +33,26 @@ const uploadToS3 = async ({ name, path }: { name: string; path: string }) => {
   console.log("Backup uploaded to S3...");
 };
 
-const dumpToFile = async (path: string) => {
+const dumpToFile = async (path: string, encryptionKeyPath?: string) => {
   console.log("Dumping DB to file...");
 
-  await new Promise((resolve, reject) => {
-    exec(
-      `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip > ${path}`,
-      (error: any, stdout: unknown, stderr: any) => {
-        if (error) {
-          reject({ error: JSON.stringify(error), stderr });
-          return;
-        }
+  if (encryptionKeyPath) {
+    console.log("Encryption key provided, encrypting backup...");
+  }
 
-        resolve(undefined);
+  const cmd = encryptionKeyPath
+    ? `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip | openssl smime -encrypt -aes256 -binary -outform DEM -out ${path}.enc "${encryptionKeyPath}"`
+    : `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip > ${path}`;
+
+  await new Promise((resolve, reject) => {
+    exec(cmd, (error: any, stdout: unknown, stderr: any) => {
+      if (error) {
+        reject({ error: JSON.stringify(error), stderr });
+        return;
       }
-    );
+
+      resolve(undefined);
+    });
   });
 
   console.log("DB dumped to file...");
@@ -61,7 +66,13 @@ export const backup = async () => {
   const filename = `backup-${timestamp}.tar.gz`;
   const filepath = `/tmp/${filename}`;
 
-  await dumpToFile(filepath);
+  let encryptionKeyPath;
+  if (env.ENCRYPTION_KEY_PUBLIC) {
+    encryptionKeyPath = "/tmp/backup_encryption_key.pem.pub";
+    execSync(`echo "${env.ENCRYPTION_KEY_PUBLIC}" > ${encryptionKeyPath}`);
+  }
+
+  await dumpToFile(filepath, encryptionKeyPath);
   await uploadToS3({ name: filename, path: filepath });
 
   console.log("DB backup complete...");

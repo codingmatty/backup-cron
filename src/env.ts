@@ -23,4 +23,9 @@ export const env = envsafe({
     default: "",
     allowEmpty: true,
   }),
+  ENCRYPTION_KEY_PUBLIC: str({
+    desc: "The public key to use for encryption.",
+    default: "",
+    allowEmpty: true,
+  }),
 });
