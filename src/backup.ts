@@ -4,21 +4,21 @@ import { createReadStream } from "fs";
 
 import { env } from "./env";
 
-const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
+const uploadToS3 = async ({ name, path }: { name: string; path: string }) => {
   console.log("Uploading backup to S3...");
 
   const bucket = env.AWS_S3_BUCKET;
 
   const clientOptions: S3ClientConfig = {
     region: env.AWS_S3_REGION,
-  }
+  };
 
   if (env.AWS_S3_ENDPOINT) {
-    console.log(`Using custom endpoint: ${env.AWS_S3_ENDPOINT}`)
-    clientOptions['endpoint'] = env.AWS_S3_ENDPOINT;
+    console.log(`Using custom endpoint: ${env.AWS_S3_ENDPOINT}`);
+    clientOptions["endpoint"] = env.AWS_S3_ENDPOINT;
   }
 
-  const Key = env.AWS_S3_KEY_PREFIX ? `${env.AWS_S3_KEY_PREFIX}/${name}` : name
+  const Key = env.AWS_S3_KEY_PREFIX ? `${env.AWS_S3_KEY_PREFIX}/${name}` : name;
 
   const client = new S3Client(clientOptions);
 
@@ -28,10 +28,10 @@ const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
       Key,
       Body: createReadStream(path),
     })
-  )
+  );
 
   console.log("Backup uploaded to S3...");
-}
+};
 
 const dumpToFile = async (path: string) => {
   console.log("Dumping DB to file...");
@@ -39,7 +39,7 @@ const dumpToFile = async (path: string) => {
   await new Promise((resolve, reject) => {
     exec(
       `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip > ${path}`,
-      (error, stdout, stderr) => {
+      (error: any, stdout: unknown, stderr: any) => {
         if (error) {
           reject({ error: JSON.stringify(error), stderr });
           return;
@@ -51,18 +51,18 @@ const dumpToFile = async (path: string) => {
   });
 
   console.log("DB dumped to file...");
-}
+};
 
 export const backup = async () => {
-  console.log("Initiating DB backup...")
+  console.log("Initiating DB backup...");
 
-  let date = new Date().toISOString()
-  const timestamp = date.replace(/[:.]+/g, '-')
-  const filename = `backup-${timestamp}.tar.gz`
-  const filepath = `/tmp/${filename}`
+  let date = new Date().toISOString();
+  const timestamp = date.replace(/[:.]+/g, "-");
+  const filename = `backup-${timestamp}.tar.gz`;
+  const filepath = `/tmp/${filename}`;
 
-  await dumpToFile(filepath)
-  await uploadToS3({ name: filename, path: filepath })
+  await dumpToFile(filepath);
+  await uploadToS3({ name: filename, path: filepath });
 
-  console.log("DB backup complete...")
-}
+  console.log("DB backup complete...");
+};
