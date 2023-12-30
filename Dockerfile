@@ -2,7 +2,7 @@ FROM alpine:3.14 AS build
 
 WORKDIR /root
 
-RUN apk add --update --no-cache nodejs npm
+RUN apk add --update --no-cache nodejs npm openssl
 
 COPY package*.json ./
 COPY tsconfig.json ./
