@@ -41,7 +41,7 @@ const dumpToFile = async (path: string, encryptionKeyPath?: string) => {
   }
 
   const cmd = encryptionKeyPath
-    ? `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip | openssl smime -encrypt -aes256 -binary -outform DEM -out ${path}.enc "${encryptionKeyPath}"`
+    ? `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip | openssl smime -encrypt -aes256 -binary -outform DEM -out ${path} "${encryptionKeyPath}"`
     : `pg_dump ${env.BACKUP_DATABASE_URL} -F t | gzip > ${path}`;
 
   await new Promise((resolve, reject) => {
